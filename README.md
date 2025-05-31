@@ -1,0 +1,33 @@
+<hr>
+
+<div align="center"> 
+
+### BLOX-TAK-GEMINI
+
+</div> 
+
+<hr>
+
+<div align="center">
+
+### ✌️🦅🇺🇸🇪🇺🇵🇱🇪🇺🇺🇸🦅✌️
+<br>
+<img src="1.png" width="" height=""/>
+<br>
+<img src="2.png" width="" height=""/>
+<br>
+<img src="3.png" width="" height=""/>
+<br>
+<img src="4.png" width="" height=""/>
+<br>
+<img src="5.png" width="" height=""/>
+
+### ✌♻️🌌🚀🌎🌍🌏🛰🌌♻️✌
+
+https://en.wikipedia.org/wiki/Gemini_(language_model)
+
+https://en.wikipedia.org/wiki/Nvidia
+
+</div>
+
+<hr>
