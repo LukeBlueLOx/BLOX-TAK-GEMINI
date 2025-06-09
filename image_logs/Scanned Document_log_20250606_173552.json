@@ -1,0 +1,12 @@
+{
+    "timestamp": "20250606_173552",
+    "image_file": "Scanned Document.pdf",
+    "status": "SUCCESS",
+    "start_time_utc": "2025-06-06T15:35:52.645797",
+    "gemini_file_name": "files/kr8rgnw4xj3j",
+    "input_tokens": 284,
+    "output_tokens": 710,
+    "total_tokens": 994,
+    "duration_seconds": 12.65,
+    "end_time_utc": "2025-06-06T15:36:05.294931"
+}

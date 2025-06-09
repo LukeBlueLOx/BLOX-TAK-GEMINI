@@ -1,0 +1,12 @@
+{
+    "timestamp": "20250606_131852",
+    "audio_file": "Recording_001.m4a",
+    "status": "SUCCESS",
+    "start_time_utc": "2025-06-06T11:18:52.670945",
+    "gemini_file_name": "files/6887b4n9mads",
+    "input_tokens": 296,
+    "output_tokens": 23,
+    "total_tokens": 248,
+    "duration_seconds": 5.67,
+    "end_time_utc": "2025-06-06T11:18:58.343792"
+}

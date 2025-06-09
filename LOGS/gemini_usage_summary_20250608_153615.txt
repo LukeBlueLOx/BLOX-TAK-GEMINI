@@ -1,0 +1,11 @@
+--- Podsumowanie Uruchomienia BLOX-TAK-GEMINI ---
+Data i czas uruchomienia: 2025-06-08 15:36:15
+Przetworzone plików PDF: 1
+Użyty model Gemini: gemini-1.5-flash
+Całkowita liczba tokenów wejściowych (prompt - per dokument): 113495
+Całkowita liczba tokenów wyjściowych (generacja - per dokument): 10326
+Całkowita liczba tokenów wejściowych (prompt - globalne podsumowanie): 11471
+Całkowita liczba tokenów wyjściowych (generacja - globalne podsumowanie): 1330
+Łączny czas przetwarzania: 120.93 sekund
+--------------------------------------------------
+UWAGA: Jeśli tokeny wyjściowe wynoszą 0 lub są podejrzanie niskie mimo wygenerowanej treści, może to oznaczać problem z API lub blokadę treści przez filtry bezpieczeństwa Gemini, lub błąd w pobieraniu usageMetadata. Sprawdź logi konsoli powyżej dla 'Feedback od Gemini' lub 'Safety Ratings'.
