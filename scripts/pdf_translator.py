@@ -25,7 +25,7 @@ LOG_FOLDER = "/home/luke_blue_lox/PycharmProjects/BLOX-TAK-GEMINI/LOGS"
 # Ensure 'UbuntuMono-Regular.ttf' is in the same location or provide a full path.
 # Zdefiniuj ścieżkę do pliku czcionki Ubuntu Mono.
 # Upewnij się, że 'UbuntuMono-Regular.ttf' znajduje się w tej samej lokalizacji lub podaj pełną ścieżkę.
-UBUNTU_MONO_FONT_PATH = "/home/luke_blue_lox/PycharmProjects/BLOX-TAK-GEMINI/UbuntuMono-Regular.ttf"
+UBUNTU_MONO_FONT_PATH = "/UbuntuMono-Regular.ttf"
 
 # Create folders if they do not exist
 # Utwórz foldery, jeśli nie istnieją
