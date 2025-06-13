@@ -1,0 +1,17 @@
+--- BLOX-TAK-GEMINI Translation Usage Summary ---
+--- Podsumowanie zużycia tłumaczenia BLOX-TAK-GEMINI ---
+Run Date and Time: 2025-06-13 17:50:13
+Data i czas uruchomienia: 2025-06-13 17:50:13
+Processed PDF files: 1
+Przetworzone plików PDF: 1
+Gemini Model Used: gemini-1.5-flash
+Użyty model Gemini: gemini-1.5-flash
+Total Input Tokens (prompt): 240764
+Całkowita liczba tokenów wejściowych (prompt): 240764
+Total Output Tokens (generation): 205244
+Całkowita liczba tokenów wyjściowych (generacja): 205244
+Total Processing Duration: 1563.51 seconds
+Łączny czas przetwarzania: 1563.51 sekund
+--------------------------------------------------
+NOTE: If output tokens are 0 or suspiciously low despite generated content, this may indicate an API issue, content blocking by Gemini safety filters, or an error in retrieving usageMetadata. Check console logs above for 'Gemini Feedback' or 'Safety Ratings'.
+UWAGA: Jeśli tokeny wyjściowe wynoszą 0 lub są podejrzanie niskie mimo wygenerowanej treści, może to oznaczać problem z API lub blokadę treści przez filtry bezpieczeństwa Gemini, lub błąd w pobieraniu usageMetadata. Sprawdź logi konsoli powyżej dla 'Feedback od Gemini' lub 'Safety Ratings'.
