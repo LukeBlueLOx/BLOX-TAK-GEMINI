@@ -12,7 +12,7 @@
 
 ### ✌️🦅🇺🇸🇪🇺🇵🇱🇪🇺🇺🇸🦅✌️
 
-https://www.linkedin.com/posts/lukebluelox_orangepi5-arm64-bielik-activity-7334592879618617345-Jk_5
+https://www.linkedin.com/posts/lukebluelox_blox-tak-gemini-activity-7337727514405957632-m6BQ
 
 <br>
 <img src="BLOX-TAK_SF_WP.png" width="" height=""/>
