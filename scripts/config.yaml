@@ -1,0 +1,15 @@
+KEY: "*****"
+folders_to_check:
+  - image_output
+  - TRANSLATIONS
+  - audio_input
+  - FOR_ANALYSIS
+  - LOGS
+  - audio_logs
+  - image_input
+  - PROCESSED_OUTPUT
+  - audio_output
+  - image_logs
+  - TEMP
+base_path: "/home/luke_blue_lox/PycharmProjects/BLOX-TAK-GEMINI"
+google_drive_parent_folder_id: "*****"
