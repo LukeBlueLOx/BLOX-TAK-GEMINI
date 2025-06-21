@@ -25,15 +25,20 @@ Real-Oryginal Image (2K16Y)
 
 
 <img src="BLOX-TAK_SF_WP.png" width="" height=""/>
-<br>
+
+
 <img src="1.png" width="" height=""/>
-<br>
+
+
 <img src="2.png" width="" height=""/>
-<br>
+
+
 <img src="3.png" width="" height=""/>
-<br>
+
+
 <img src="4.png" width="" height=""/>
-<br>
+
+
 <img src="5.png" width="" height=""/>
 
 ### ✌♻️🌌🚀🌎🌍🌏🛰🌌♻️✌
