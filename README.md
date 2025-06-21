@@ -23,7 +23,7 @@ Gemini 2.5 PRO Generated Image (2K25Y)
 Real-Oryginal Image (2K16Y)
 <img src="Real-Oryginal.jpg" width="" height=""/>
 
-<br>
+
 <img src="BLOX-TAK_SF_WP.png" width="" height=""/>
 <br>
 <img src="1.png" width="" height=""/>
