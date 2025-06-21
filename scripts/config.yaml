@@ -1,0 +1,106 @@
+# --- API Key Configuration ---
+# --- Konfiguracja Klucza API ---
+# API Key for Google Gemini services. Required for OCR and transcription functionalities.
+# Klucz API do usług Google Gemini. Niezbędny do działania funkcji OCR i transkrypcji.
+KEY: "*****" # <-- Paste your real key here / Wklej tutaj swój prawdziwy klucz
+
+# --- Main Project Configuration ---
+# --- Główna Konfiguracja Projektu ---
+# The main, absolute path to the project directory. All other paths will be built based on this one.
+# Główna, absolutna ścieżka do katalogu projektu. Wszystkie inne ścieżki będą budowane na jej podstawie.
+base_path: "/home/luke_blue_lox/PycharmProjects/BLOX-TAK-GEMINI"
+
+# --- RAG Pipeline Configuration ---
+# --- Konfiguracja Potoku RAG ---
+rag_pipeline_config:
+  # Folder z oryginalnymi plikami (PDF, PNG, JPG, MP3, etc.)
+  # Directory with original source files (PDF, PNG, JPG, MP3, etc.)
+  source_folder: "TEMP"
+
+  # Folder na przetworzone pliki .txt (pamięć podręczna)
+  # Directory for processed .txt files (text cache)
+  text_cache_folder: "KNOWLEDGE_BASE/TEXT_CACHE"
+
+  # Folder na bazę wektorową ChromaDB
+  # Directory for the ChromaDB vector store
+  vector_db_folder: "KNOWLEDGE_BASE/VECTOR_DB_CHROMA"
+
+  # Model używany do tworzenia wektorów (embeddings)
+  # Model used for creating embeddings
+  embedding_model: "models/text-embedding-004"
+
+  # Model używany do generowania odpowiedzi
+  # Model used for generating answers
+  llm_model: "gemini-1.5-flash"
+
+  # --- SEKCJA DO ZARZĄDZANIA LIMITAMI ---
+  # --- SECTION FOR LIMIT MANAGEMENT ---
+  # Dzienny limit zapytań do API (zgodnie z Twoim planem Free Tier)
+  # Daily API request limit (according to your Free Tier plan)
+  daily_api_request_limit: 500
+
+  # Margines bezpieczeństwa - skrypt zatrzyma się, gdy licznik osiągnie (limit - margines)
+  # Safety margin - the script will stop when the counter reaches (limit - margin)
+  limit_safety_margin: 20
+
+# --- Configuration for the Content Merging Script ---
+# --- Konfiguracja dla Skryptu Łączącego Treści ---
+merger_script_config:
+  source_folder: "TEMP"
+  output_folder: "FOR_ANALYSIS"
+  font_path: "UbuntuMono-Regular.ttf"
+  font_name: "UbuntuMono"
+  font_size: 12
+  model_name: "gemini-1.5-flash"
+  ocr_prompt: "GEMINI, Make OCR. Do not add any additional information, just the text."
+  audio_prompt: "Transcribe the audio recording. Correct the text for grammar and style, returning only the final, clean text in Polish."
+  ocr_resolution: 150
+
+# --- Configuration for the Translation Script ---
+# --- Konfiguracja dla Skryptu Tłumaczącego ---
+translator_script_config:
+  source_folder: "FOR_ANALYSIS"
+  output_folder: "TRANSLATIONS"
+  log_folder: "LOGS"
+  font_path: "UbuntuMono-Regular.ttf"
+  font_name: "UbuntuMono"
+  font_size: 12
+  model_name: "gemini-1.5-flash"
+  chunk_size_chars: 30000
+
+  # List of target languages for translation. Use English names, sorted alphabetically.
+  # Lista języków docelowych dla tłumaczenia. Użyj angielskich nazw, posortowanych alfabetycznie.
+  target_languages:
+    - "English"
+    - "Polish"
+    # - "Arabic"
+    # - "Chinese"
+    - "Czech"
+    # - "French"
+    # - "German"
+    # - "Hebrew"
+    # - "Japanese"
+    # - "Persian"
+    # - "Russian"
+    # - "Spanish"
+    # - "Ukrainian"
+
+# --- Configuration for Other Scripts ---
+# --- Konfiguracja dla Innych Skryptów ---
+folders_to_check:
+  - image_output
+  - TRANSLATIONS
+  - audio_input
+  - FOR_ANALYSIS
+  - LOGS
+  - audio_logs
+  - image_input
+  - PROCESSED_OUTPUT
+  - audio_output
+  - image_logs
+  - TEMP
+  #- KNOWLEDGE_BASE
+
+# Parent folder ID on Google Drive, used by the upload script.
+# ID folderu nadrzędnego na Dysku Google, używane przez skrypt do przesyłania plików.
+google_drive_parent_folder_id: "*****"

@@ -1,0 +1,31 @@
+        base_prompt = (
+            f"Jesteś ekspertem prawnym - zacytuj i potem wyjaśnij mi wskazane artykuły z Polskiego KPC, "
+            f"a także jakie prawa mi przysługują w związku z tym. Opisz to w języku Polskim i następnie dodaj także "
+            f"tłumaczenie w języku Angielskim. Podaj również na końcu treść użytego promptu - analogicznie w języku "
+            f"Polskim i Angielskim, a także wersję modelu jaki został użyty - czyli: gemini-1.5-flash,"
+            f"z pełnym timestamp: " + full_timestamp
+        )
+
+        base_prompt = (
+            f"Jesteś ekspertem prawnym - przeanalizuj dokument pod kątem Prawa Polskiego i Uni Europejskiej."
+            f"Zacytuj artykuły i opisz jakie moje prawa zostały złamane"
+            f"Wynik podaj w języku Polskim i Angielskim. Podaj również na końcu treść użytego promptu - analogicznie w języku "
+            f"Polskim i Angielskim, a także wersję modelu jaki został użyty - czyli: gemini-1.5-flash,"
+            f"z pełnym timestamp: " + full_timestamp
+        )
+
+
+
+        base_overall_prompt = (
+        #f"Jesteś ekspertem prawnym. Otrzymujesz serię analiz prawnych (lub ich fragmentów), "
+        #f"które dotyczą różnych przypadków naruszenia praw i wolności obywatelskich w świetle Konstytucji RP. "
+        #f"Twoim zadaniem jest stworzenie JEDNEGO, SPÓJNEGO podsumowania wszystkich tych analiz. "
+        #f"Skup się na: "
+        #f"1. **Głównych kategoriach naruszeń Konstytucji RP**, które powtarzają się w analizach. "
+        #f"2. **Wzorcach lub schematach działania**, jeśli takie występują w opisanych przypadkach. "
+        #f"3. **Najczęściej naruszanych artykułach Konstytucji RP** (bez enumerowania każdego artykułu z osobna, ale wskazanie dominujących obszarów). "
+        #f"4. **Ogólnych wnioskach** dotyczących natury problemów prawnych. "
+        #f"Nie powtarzaj szczegółów konkretnych przypadków, chyba że są kluczowe dla zilustrowania wzorca. "
+        #f"Podsumowanie powinno być zwięzłe, syntetyczne i skupione na ogólnym obrazie sytuacji prawnej. "
+        #f"Pomiń wszelkie wstępy i zakończenia, skup się na meritum podsumowania."
+    )
