@@ -1,224 +1,333 @@
-# --- Importing necessary libraries ---
-# --- Importowanie niezbędnych bibliotek ---
-import os  # Do operacji na systemie plików / For filesystem operations
-import yaml  # Do wczytywania plików konfiguracyjnych / For loading configuration files
-import shutil  # Do operacji na plikach wysokiego poziomu, np. usuwania folderów / For high-level file operations, e.g., removing directories
-import time  # Do mierzenia czasu wykonania / For measuring execution time
-import json  # Do pracy z plikami JSON (zapis logów) / For working with JSON files (log saving)
-from datetime import datetime  # Do generowania znaczników czasu / For generating timestamps
-# Biblioteki LangChain do integracji z Google Gemini
-# LangChain libraries for Google Gemini integration
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# --- Standard Python Libraries ---
+# --- Standardowe Biblioteki Pythona ---
+import os
+import yaml
+import shutil
+import logging
+from logging.handlers import RotatingFileHandler
+import datetime
+import re
+
+# --- PDF Generation Libraries ---
+# --- Biblioteki do generowania PDF ---
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
+from reportlab.lib.enums import TA_JUSTIFY
+
+# --- LangChain & Google Libraries ---
+# --- Biblioteki LangChain i Google ---
 from langchain_google_genai import GoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-# Biblioteka LangChain do przechowywania wektorów w ChromaDB
-# LangChain library for storing vectors in ChromaDB
-#from langchain.vectorstores.chroma import Chroma
-from langchain_community.vectorstores import Chroma
-# Biblioteka LangChain do ładowania dokumentów z folderu
-# LangChain library for loading documents from a directory
-from langchain_community.document_loaders import DirectoryLoader
-# Biblioteka LangChain do dzielenia tekstu na fragmenty (chunks)
-# LangChain library for splitting text into chunks
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-# Biblioteki LangChain do budowania łańcucha RAG (prompt, przekazywanie danych, parser odpowiedzi)
-# LangChain libraries for building the RAG chain (prompt, data passthrough, output parser)
+from langchain_chroma import Chroma
 from langchain.prompts import PromptTemplate
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import StrOutputParser
 
+# --- Local Project Modules ---
+# --- Lokalne Moduły Projektu ---
+from rag_data_preprocessor import get_documents_from_source
 
-# --- Main Configuration Loading ---
-# --- Główne ładowanie konfiguracji ---
-def load_configuration():
-    """
-    Wczytuje konfigurację z pliku scripts/config.yaml i zwraca ją jako słownik.
-    Loads configuration from scripts/config.yaml file and returns it as a dictionary.
-    """
-    config_path = os.path.join(os.path.dirname(__file__), '..', 'scripts', 'config.yaml')
-    if not os.path.exists(config_path): config_path = "scripts/config.yaml"
 
+def setup_logger(log_folder: str):
+    """
+    Sets up a logger to output to both console and a rotating file.
+    Konfiguruje logger do zapisu zarówno do konsoli, jak i do rotacyjnego pliku.
+    """
+    if not os.path.exists(log_folder):
+        os.makedirs(log_folder)
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+
+    if logger.hasHandlers():
+        logger.handlers.clear()
+
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    fh = RotatingFileHandler(os.path.join(log_folder, 'rag_assistant.log'), maxBytes=5 * 1024 * 1024, backupCount=3)
+    fh.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    fh.setFormatter(formatter)
+    logger.addHandler(ch)
+    logger.addHandler(fh)
+    return logger
+
+
+def load_configuration(config_path="scripts/config.yaml"):
+    """
+    Loads the main configuration file.
+    Wczytuje główny plik konfiguracyjny.
+    """
     try:
         with open(config_path, "r", encoding="utf-8") as cr:
             config = yaml.full_load(cr)
+
+        base_path = config['base_path']
+        rag_config = config['rag_pipeline_config']
+
         conf = {
             "GOOGLE_API_KEY": config['KEY'],
-            "BASE_PATH": config['base_path'],
-            "TEXT_CACHE_FOLDER": os.path.join(config['base_path'], config['rag_pipeline_config']['text_cache_folder']),
-            "VECTOR_DB_FOLDER": os.path.join(config['base_path'], config['rag_pipeline_config']['vector_db_folder']),
-            "LOG_FOLDER": os.path.join(config['base_path'], "LOGS"),
-            "EMBEDDING_MODEL": config['rag_pipeline_config']['embedding_model'],
-            "LLM_MODEL": config['rag_pipeline_config']['llm_model']
+            "LEGAL_SOURCE": os.path.join(base_path, rag_config['legal_source_folder']),
+            "CASE_SOURCE": os.path.join(base_path, rag_config['case_source_folder']),
+            "LEGAL_DB": os.path.join(base_path, rag_config['vector_db_legal_folder']),
+            "CASE_DB": os.path.join(base_path, rag_config['vector_db_case_folder']),
+            "LOG_FOLDER": os.path.join(base_path, rag_config['log_folder']),
+            "EMBEDDING_MODEL": rag_config['embedding_model'],
+            "LLM_MODEL": rag_config['llm_model'],
+            "OUTPUT_FOLDER": os.path.join(base_path, "PROCESSED_OUTPUT"),
+            "FONT_PATH": os.path.join(base_path, "UbuntuMono-Regular.ttf"),
+            "FONT_NAME": "UbuntuMono",
+            "FONT_SIZE": 10
         }
-        print("Konfiguracja dla asystenta RAG załadowana pomyślnie.")
-        print("RAG assistant configuration loaded successfully.")
+        os.makedirs(conf["OUTPUT_FOLDER"], exist_ok=True)
+        print("English: Configuration loaded successfully.\nPolski: Konfiguracja załadowana pomyślnie.")
         return conf
     except Exception as e:
-        print(f"FATAL ERROR in configuration from path {config_path}: {e}")
+        print(
+            f"English: FATAL ERROR loading configuration from {config_path}: {e}\nPolski: KRYTYCZNY BŁĄD podczas ładowania konfiguracji z {config_path}: {e}")
         return None
 
 
-# --- Log Management Function ---
-# --- Funkcja Zarządzania Logami ---
-def save_session_log(log_folder, log_data):
-    """
-    Zapisuje log z sesji zapytań i odpowiedzi do pliku JSON.
-    Saves the query and answer session log to a JSON file.
-    """
-    session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file_path = os.path.join(log_folder, f"rag_query_assistant_log_{session_timestamp}.json")
-    try:
-        with open(log_file_path, 'w', encoding='utf-8') as f:
-            json.dump(log_data, f, indent=4, ensure_ascii=False)
-        print(f"\nLog sesji zapytań zapisano do: {log_file_path}")
-        print(f"Query session log saved to: {log_file_path}")
-    except IOError as e:
-        print(f"BŁĄD: Nie można zapisać pliku logu sesji: {e}")
-        print(f"ERROR: Could not write session log file: {e}")
-
-
-# --- Initialization ---
-# --- Inicjalizacja ---
+# --- Global Initialization ---
+# --- Globalna Inicjalizacja ---
 CONFIG = load_configuration()
-LLM = None
-EMBEDDINGS = None
 if CONFIG:
+    logger = setup_logger(CONFIG['LOG_FOLDER'])
+    LLM = GoogleGenerativeAI(model=CONFIG['LLM_MODEL'], google_api_key=CONFIG['GOOGLE_API_KEY'])
+    EMBEDDINGS = GoogleGenerativeAIEmbeddings(model=CONFIG['EMBEDDING_MODEL'], google_api_key=CONFIG['GOOGLE_API_KEY'])
+
     try:
-        LLM = GoogleGenerativeAI(model=CONFIG['LLM_MODEL'], google_api_key=CONFIG['GOOGLE_API_KEY'])
-        EMBEDDINGS = GoogleGenerativeAIEmbeddings(model=CONFIG['EMBEDDING_MODEL'],
-                                                  google_api_key=CONFIG['GOOGLE_API_KEY'])
-        os.makedirs(CONFIG['LOG_FOLDER'], exist_ok=True)
-        print("Modele Gemini (LLM i Embeddings) gotowe do pracy.")
-        print("Gemini model (LLM and Embeddings) are ready.")
+        pdfmetrics.registerFont(TTFont(CONFIG['FONT_NAME'], CONFIG['FONT_PATH']))
+        print(f"Font '{CONFIG['FONT_NAME']}' registered successfully.")
     except Exception as e:
-        print(f"BŁĄD: Nie można skonfigurować Gemini API: {e}")
-        CONFIG = None
+        print(f"ERROR: Could not register font. Defaulting to Helvetica. Error: {e}")
+        CONFIG['FONT_NAME'] = "Helvetica"
+
+else:
+    logger = setup_logger('LOGS')
 
 
-# --- Core RAG Functions ---
-# --- Główne funkcje RAG ---
-def build_vector_store_from_cache(session_log_ref):
+def initialize_vector_store(db_path: str, source_folder: str, corpus_type: str,
+                            force_rebuild: bool = False) -> Chroma | None:
     """
-    Buduje (lub przebudowuje) bazę wektorową na podstawie plików .txt z folderu cache.
-    Builds (or rebuilds) the vector store based on .txt files from the cache folder.
+    Initializes a Chroma vector store. Builds it if it doesn't exist or if rebuild is forced.
+    Inicjalizuje bazę wektorową Chroma. Buduje ją, jeśli nie istnieje lub wymuszono przebudowę.
     """
-    if not CONFIG: return
+    if os.path.exists(db_path) and not force_rebuild:
+        logger.info(f"Loading existing vector database from: {db_path}")
+        print(
+            f"English: Loading existing vector database from: {db_path}\nPolski: Ładuję istniejącą bazę wektorową z: {db_path}")
+        try:
+            db = Chroma(persist_directory=db_path, embedding_function=EMBEDDINGS)
+            return db
+        except Exception as e:
+            logger.error(
+                f"Failed to load existing database at {db_path}. It might be corrupted. Try rebuilding. Error: {e}")
+            print(
+                f"English: ERROR - Failed to load existing database at {db_path}. Try rebuilding. Error: {e}\nPolski: BŁĄD - Nie udało się załadować istniejącej bazy z {db_path}. Spróbuj ją przebudować. Błąd: {e}")
+            return None
 
-    start_time = time.time()
-    log_entry = {"action": "build_vector_store", "start_utc": datetime.utcnow().isoformat(), "status": "In-Progress"}
+    logger.info(f"Rebuilding vector database for corpus '{corpus_type}'...")
+    print(
+        f"English: Rebuilding vector database for corpus '{corpus_type}'...\nPolski: Przebudowuję bazę wektorową dla korpusu '{corpus_type}'...")
 
-    try:
-        vector_db_path = CONFIG['VECTOR_DB_FOLDER']
-        if os.path.exists(vector_db_path): shutil.rmtree(vector_db_path); print(
-            f"Usunięto istniejącą bazę danych w: {vector_db_path}")
+    if os.path.exists(db_path):
+        shutil.rmtree(db_path)
 
-        loader = DirectoryLoader(CONFIG['TEXT_CACHE_FOLDER'], glob="**/*.txt", recursive=True)
-        documents = loader.load()
-        if not documents: raise FileNotFoundError(
-            "Folder cache jest pusty. Uruchom najpierw 'rag_data_preprocessor.py'.")
+    documents = get_documents_from_source(source_folder, corpus_type)
+    if not documents:
+        logger.error(f"No documents found for corpus '{corpus_type}'. Database not built.")
+        print(
+            f"English: ERROR - No documents found for corpus '{corpus_type}'. Database not built.\nPolski: BŁĄD - Nie znaleziono dokumentów dla korpusu '{corpus_type}'. Baza danych nie została zbudowana.")
+        return None
 
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
-        docs = text_splitter.split_documents(documents)
-        print(f"Budowanie bazy wektorowej z {len(docs)} fragmentów...");
-        print(f"Building vector store from {len(docs)} chunks...")
-
-        Chroma.from_documents(documents=docs, embedding=EMBEDDINGS, persist_directory=vector_db_path)
-        log_entry["status"] = "Success"
-        print(f"Baza wektorowa została pomyślnie zbudowana w: {vector_db_path}")
-
-    except Exception as e:
-        log_entry["status"] = "Failed";
-        log_entry["error_message"] = str(e)
-        print(f"KRYTYCZNY BŁĄD podczas budowania bazy wektorowej: {e}")
-
-    log_entry["duration_seconds"] = round(time.time() - start_time, 2)
-    session_log_ref["database_build_event"] = log_entry
+    db = Chroma.from_documents(documents, EMBEDDINGS, persist_directory=db_path)
+    logger.info(f"Successfully built and saved vector database at: {db_path}")
+    print(
+        f"English: Successfully built and saved vector database at: {db_path}\nPolski: Pomyślnie zbudowano i zapisano bazę wektorową w: {db_path}")
+    return db
 
 
-def ask_assistant(query: str, session_log_ref):
+def format_docs(docs: list) -> str:
     """
-    Zadaje pytanie do istniejącej bazy wektorowej i zwraca odpowiedź.
-    Asks a question to the existing vector store and returns the answer.
+    Helper function to format retrieved documents for the prompt, including metadata.
+    Funkcja pomocnicza do formatowania pobranych dokumentów na potrzeby promptu, włączając metadane.
     """
-    if not CONFIG: return
-
-    start_time = time.time()
-    log_entry = {"query": query}
-
-    try:
-        vector_db_path = CONFIG['VECTOR_DB_FOLDER']
-        if not os.path.exists(vector_db_path): raise FileNotFoundError("Baza wektorowa nie istnieje.")
-
-        vector_db = Chroma(persist_directory=vector_db_path, embedding_function=EMBEDDINGS)
-        retriever = vector_db.as_retriever(search_kwargs={'k': 15})
-
-        template = """Jesteś ekspertem prawnym specjalizującym się w analizie dokumentów. Odpowiedz na pytanie użytkownika precyzyjnie i wyłącznie na podstawie dostarczonego poniżej kontekstu. Jeśli w kontekście brakuje odpowiedzi, poinformuj o tym jasno. Cytuj kluczowe fakty.
-
-KONTEKST Z TWOJEJ BAZY WIEDZY:
-{context}
-
-PYTANIE UŻYTKOWNIKA:
-{question}
-
-PRECYZYJNA ODPOWIEDŹ:"""
-        prompt = PromptTemplate.from_template(template)
-
-        rag_chain = (
-                {"context": retriever, "question": RunnablePassthrough()}
-                | prompt
-                | LLM
-                | StrOutputParser()
-        )
-
-        print("\n=======================================================")
-        print(f"PYTANIE: {query}");
-        print("---")
-
-        response = rag_chain.invoke(query)
-        print(f"ODPOWIEDŹ ASYSTENTA:\n{response}")
-
-        log_entry["response"] = response;
-        log_entry["status"] = "Success"
-
-    except Exception as e:
-        error_message = f"BŁĄD podczas przetwarzania zapytania: {e}";
-        print(error_message)
-        log_entry["response"] = error_message;
-        log_entry["status"] = "Failed"
-
-    log_entry["duration_seconds"] = round(time.time() - start_time, 2)
-    session_log_ref["queries_asked"].append(log_entry)
-    print("=======================================================\n")
-
-
-# --- Main Execution ---
-# --- Główne wykonanie ---
-if __name__ == "__main__":
-    """
-    Główny blok wykonawczy skryptu. Pozwala na budowę bazy lub zadawanie pytań.
-    Main execution block of the script. Allows building the database or asking questions.
-    """
-    session_log_data = {"session_start_utc": datetime.utcnow().isoformat(), "database_build_event": None,
-                        "queries_asked": []}
-
-    try:
-        # === KROK 1: Budowanie bazy wektorowej (jednorazowo) ===
-        # === STEP 1: Building the vector store (one-time) ===
-        #build_vector_store_from_cache(session_log_data)
-
-        # === KROK 2: Zadawanie pytań ===
-        # === STEP 2: Asking questions ===
-        if CONFIG and os.path.exists(CONFIG["VECTOR_DB_FOLDER"]):
-            ask_assistant(
-                "Czy posiadasz w bazie Konstytucję RP?",
-                session_log_data)
-            ask_assistant("Jesli tak - znajdź artykuł 13 i opisz mi jego znaczenie",
-                          session_log_data)
+    formatted_docs = []
+    for doc in docs:
+        if doc.metadata.get("type") == "legal_corpus":
+            header = f"Fragment z prawa: {doc.metadata.get('source', 'b.d.')}, Artykuł: {doc.metadata.get('article', 'b.d.')}"
+        elif doc.metadata.get("type") == "case_corpus":
+            header = f"Fragment z dowodu: {doc.metadata.get('source_original', 'b.d.')} (w archiwum: {doc.metadata.get('source_archive', 'b.d.')})"
         else:
-            print(
-                "\nBaza wektorowa nie istnieje. Uruchom najpierw `rag_data_preprocessor.py`, a następnie odkomentuj funkcję `build_vector_store_from_cache()` w tym skrypcie i uruchom go.")
-            print(
-                "Vector store does not exist. First run `rag_data_preprocessor.py`, then uncomment the `build_vector_store_from_cache()` function in this script and run it.")
+            header = "Fragment z nieznanego źródła"
 
-    finally:
-        # Zapisz log całej sesji na koniec
-        # Save the entire session log at the end
-        save_session_log(CONFIG['LOG_FOLDER'], session_log_data)
+        content = doc.page_content
+        formatted_docs.append(f"{header}\n---\n{content}\n---\n")
+    return "\n".join(formatted_docs)
+
+
+def reflow_text(text: str) -> str:
+    """
+    Intelligently joins lines for better PDF formatting.
+    Inteligentnie łączy linie dla lepszego formatowania PDF.
+    """
+    reflowed = re.sub(r'(?<!\n)\n(?!\n)', ' ', text)
+    reflowed = re.sub(r'\n{2,}', '<br/><br/>', reflowed)
+    return reflowed
+
+
+def save_text_to_pdf(text_content, output_pdf_path, font_name, font_size):
+    """
+    Saves the given text content to a PDF file using Platypus for proper text wrapping.
+    Zapisuje podany tekst do pliku PDF, używając biblioteki Platypus do poprawnego zawijania tekstu.
+    """
+    print(f"English: Saving PDF to: {output_pdf_path}...\nPolski: Zapisuję PDF do: {output_pdf_path}...")
+
+    doc = SimpleDocTemplate(output_pdf_path, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=72)
+    styles = getSampleStyleSheet()
+    style = ParagraphStyle(name='Normal_Justified', parent=styles['Normal'], fontName=font_name, fontSize=font_size,
+                           leading=font_size * 1.5, alignment=TA_JUSTIFY)
+
+    processed_text = reflow_text(text_content)
+    story = [Paragraph(processed_text, style)]
+
+    try:
+        doc.build(story)
+        print(f"English: Successfully saved PDF: {output_pdf_path}\nPolski: Pomyślnie zapisano PDF: {output_pdf_path}")
+    except Exception as e:
+        print(f"English: ERROR saving PDF: {e}\nPolski: BŁĄD podczas zapisywania PDF: {e}")
+
+
+def perform_legal_analysis(query: str, legal_retriever, case_retriever):
+    """
+    Performs a multi-step RAG query to synthesize facts and law.
+    Wykonuje wieloetapowe zapytanie RAG w celu syntezy faktów i prawa.
+    """
+    now = datetime.datetime.now()
+    full_timestamp = now.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+
+    logger.info(f"Performing full legal analysis for query: '{query[:80]}...'")
+    print(
+        f"English: Performing full legal analysis for query: '{query[:80]}...'\nPolski: Wykonuję pełną analizę prawną dla zapytania: '{query[:80]}...'")
+
+    logger.info("Step 1: Retrieving facts from case_db...")
+    print(
+        "English: Step 1: Retrieving facts from case database...\nPolski: Krok 1: Pobieram fakty z bazy danych sprawy...")
+    factual_context_docs = case_retriever.invoke(query)
+    factual_context_str = format_docs(factual_context_docs)
+
+    logger.info("Step 2: Retrieving law from legal_db...")
+    print(
+        "English: Step 2: Retrieving law from legal database...\nPolski: Krok 2: Pobieram prawo z bazy danych prawnej...")
+    legal_context_docs = legal_retriever.invoke(query)
+    legal_context_str = format_docs(legal_context_docs)
+
+    logger.info("Step 3: Synthesizing final answer with LLM...")
+    print(
+        "English: Step 3: Synthesizing final answer with LLM...\nPolski: Krok 3: Syntezuję ostateczną odpowiedź za pomocą LLM...")
+
+    # Zmodyfikowany szablon, który instruuje model, aby dołączył tłumaczenie i metadane
+    final_template = f"""Jesteś ekspertem prawnym i analitykiem. Twoim zadaniem jest staranna analiza przedstawionego stanu faktycznego w świetle załączonych przepisów prawnych, aby odpowiedzieć na pytanie użytkownika.
+Odpowiedź musi być spójna, logiczna i odwoływać się zarówno do faktów, jak i do prawa, cytując źródła w nawiasach kwadratowych po każdej informacji, np. [źródło: KODEKS_KARNY.pdf, Art. 148].
+
+Struktura odpowiedzi musi być następująca:
+1.  **Analiza Prawna (Język Polski):** Na początku przedstaw kompletną analizę w języku polskim.
+2.  **English Translation:** Następnie, pod nagłówkiem "--- ENGLISH TRANSLATION ---", przetłumacz całą powyższą analizę na język angielski.
+3.  **Metadata:** Na samym końcu odpowiedzi, pod nagłówkiem "--- METADATA ---", dodaj stopkę z metadanymi w następującym formacie:
+    Użyty prompt (PL): [Wklej tutaj treść całego tego promptu, zaczynając od "Jesteś ekspertem prawnym..."]
+    Used prompt (EN): [Wklej tutaj dokładne tłumaczenie całego tego promptu na język angielski]
+    Model: {CONFIG['LLM_MODEL']}
+    Timestamp: {full_timestamp}
+
+---
+PYTANIE UŻYTKOWNIKA:
+{{question}}
+
+ZEBRANE FAKTY (Z DOKUMENTÓW SPRAWY):
+{{factual_context}}
+
+ZEBRANE PRZEPISY PRAWNE:
+{{legal_context}}
+
+---
+KOMPLEKSOWA ODPOWIEDŹ (wygeneruj zgodnie z wymaganą strukturą):
+"""
+
+    prompt = PromptTemplate.from_template(final_template)
+
+    analysis_chain = prompt | LLM | StrOutputParser()
+
+    response = analysis_chain.invoke({
+        "question": query,
+        "factual_context": factual_context_str,
+        "legal_context": legal_context_str
+    })
+
+    print("\n" + "=" * 25 + " WYNIK ANALIZY " + "=" * 25)
+    print(response)
+    print("=" * 65 + "\n")
+
+    # Zapisz wynik do pliku PDF
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_filename = f"RAG_Analysis_{timestamp}.pdf"
+    output_path = os.path.join(CONFIG['OUTPUT_FOLDER'], output_filename)
+
+    save_text_to_pdf(
+        text_content=response,
+        output_pdf_path=output_path,
+        font_name=CONFIG['FONT_NAME'],
+        font_size=CONFIG['FONT_SIZE']
+    )
+
+
+if __name__ == "__main__":
+    if not CONFIG:
+        logger.critical("Configuration failed to load. Exiting.")
+        print(
+            "English: FATAL - Configuration failed to load. Exiting.\nPolski: BŁĄD KRYTYCZNY - Nie udało się wczytać konfiguracji. Zamykanie.")
+        exit()
+
+    # --- Rebuild Flags ---
+    # Ustaw na True, jeśli chcesz wymusić przebudowanie konkretnej bazy
+    # Set to True if you want to force a rebuild of a specific database
+    REBUILD_LEGAL_DB = True
+    REBUILD_CASE_DB = True
+
+    legal_db = initialize_vector_store(
+        db_path=CONFIG['LEGAL_DB'],
+        source_folder=CONFIG['LEGAL_SOURCE'],
+        corpus_type='legal',
+        force_rebuild=REBUILD_LEGAL_DB
+    )
+
+    case_db = initialize_vector_store(
+        db_path=CONFIG['CASE_DB'],
+        source_folder=CONFIG['CASE_SOURCE'],
+        corpus_type='case',
+        force_rebuild=REBUILD_CASE_DB
+    )
+
+    if not legal_db or not case_db:
+        logger.critical("One or more databases failed to initialize. Cannot proceed with queries.")
+        print(
+            "English: CRITICAL - One or more databases failed to initialize. Cannot proceed.\nPolski: BŁĄD KRYTYCZNY - Inicjalizacja jednej lub więcej baz danych nie powiodła się. Nie można kontynuować.")
+    else:
+        legal_retriever = legal_db.as_retriever(search_kwargs={'k': 5})
+        case_retriever = case_db.as_retriever(search_kwargs={'k': 8})
+
+        # --- Ask your question here ---
+        # --- Zadaj swoje pytanie tutaj ---
+        user_question = "Jakie prawa gwarantowane przez Konstytucję RP mogły zostać naruszone, biorąc pod uwagę treść moich pism, w których opisuję brak środków do życia i problemy zdrowotne?"
+
+        perform_legal_analysis(
+            query=user_question,
+            legal_retriever=legal_retriever,
+            case_retriever=case_retriever
+        )
